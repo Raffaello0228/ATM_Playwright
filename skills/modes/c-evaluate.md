@@ -10,7 +10,7 @@
 
 1. 用例 CSV（`project/{project_name}/cases.csv`）—— 含 case_id、user_query、final_intent、expected_tools
 2. 项目评估标准文件（`evaluation_criteria.md`）—— 位于 `project/{project_name}/evaluation_criteria.md`
-3. 对话上下文（`reports/<test_run_id>/context.jsonl`）—— 含所有轮次的 user_message 和 assistant_text
+3. 对话上下文（`reports/<test_run_id>/turns.jsonl`）—— 含所有轮次的 user_message 和 assistant_text
 4. Langfuse trace 数据（`reports/<test_run_id>/traces.jsonl`）—— 含 tool_calls、tool_call_counts、tool_call_failures
 5. 下载报告文件（可选）—— 若 Mode B 中下载了结果文件，存于 `reports/<test_run_id>/`，评分时读取其内容（优先级高于 assistant_text 中的聊天回复）
 
@@ -38,16 +38,16 @@ Read: project/{project_name}/evaluation_criteria.md
 再读取对话上下文和 trace 数据：
 
 ```
-Read: reports/<test_run_id>/context.jsonl
+Read: reports/<test_run_id>/turns.jsonl
 Read: reports/<test_run_id>/traces.jsonl
 ```
 
-- 将 `context.jsonl` 所有记录的 `assistant_text` 拼接为全文（评分内容来源）
+- 将 `turns.jsonl` 所有记录的 `assistant_text` 拼接为全文（评分内容来源）
 - 将 `traces.jsonl` 所有记录的 `tool_calls` 合并为去重列表（工具断言来源）
 
-**下载报告文件检测（可选）**：读取后，检查 `reports/<test_run_id>/` 目录下是否存在非 `context.jsonl` / `traces.jsonl` / `result.json` / `report.md` 的其他文件（即 Mode B 下载的结果文件）。若存在，读取其内容，**评分时以报告文件内容为准**，优先级高于 assistant_text 中的聊天回复。
+**下载报告文件检测（可选）**：读取后，检查 `reports/<test_run_id>/` 目录下是否存在非 `turns.jsonl` / `traces.jsonl` / `result.json` / `report.md` 的其他文件（即 Mode B 下载的结果文件）。若存在，读取其内容，**评分时以报告文件内容为准**，优先级高于 assistant_text 中的聊天回复。
 
-**来源核验数据检测（可选）**：读取 context.jsonl 后，检查是否存在 `user_message` 为 `"[来源核验汇总]"` 的轮次。
+**来源核验数据检测（可选）**：读取 turns.jsonl 后，检查是否存在 `user_message` 为 `"[来源核验汇总]"` 的轮次。
 - 若存在：提取其 `assistant_text` 中「抓取内容准确率: XX.X%」的百分比数值，在评分时将该值代入项目 `evaluation_criteria.md` 中对应的准确率评分规则（如 3.5b）。
   - **来源说明**：准确率可能基于 Agent 聊天回复中的 URL，也可能基于 Agent 生成的**下载报告文件**内容（由 `operation_guide.md` 中"结果文件处理"节指导 Mode B 提取）；无论来源，`[来源核验汇总]` 格式相同，提取和代入评分逻辑不变。若下载报告被用作核验依据，其数值优先级高于聊天区域文字。
 - 若不存在：按原有流程评估（3.5 数据一致性需人工核查）。
@@ -70,7 +70,7 @@ Read: reports/<test_run_id>/traces.jsonl
 
 1. 每节包含若干验证点，按其**得分规则**（满分/部分分/零分）判定，注意：
    - **一票否决项**：触发则该节强制归零
-   - **客观项**：严格按关键词/数据在 `assistant_text`（来自 context.jsonl）或 `tool_calls`（来自 traces.jsonl）中的出现情况判定（若有下载报告文件，以报告内容为准）
+   - **客观项**：严格按关键词/数据在 `assistant_text`（来自 turns.jsonl）或 `tool_calls`（来自 traces.jsonl）中的出现情况判定（若有下载报告文件，以报告内容为准）
    - **主观项**：依据描述锚点酌情打分，给出理由
 2. 按文件中的**加权公式**计算总分
 3. 按文件中的**最终判定阈值**输出 Pass / Review / Fail
@@ -125,7 +125,7 @@ Write: reports/{test_run_id}/result.json
 
 **生成 Markdown 报告：**
 
-根据 `context.jsonl` + `traces.jsonl` + `result.json` 内容，生成报告并写出：
+根据 `turns.jsonl` + `traces.jsonl` + `result.json` 内容，生成报告并写出：
 
 ```
 Write: reports/{test_run_id}/report.md

@@ -214,7 +214,7 @@ playwright-cli run-code "async page => {
 - `assistant_text`：**步骤 5c 中该 Trace 结束时提取的页面原始全文**，与 run-code 返回内容完全一致，严禁总结或添加任何注释；每条 Trace 各有一次独立提取；不从 Langfuse 取
 - `latency_ms` / `input_tokens` / `output_tokens`：来自该 trace
 
-> **tool_calls 和 observations 均不写入 context.jsonl**，由步骤 7b 单独存入 `traces.jsonl`。
+> **tool_calls 和 observations 均不写入 turns.jsonl**，由步骤 7b 单独存入 `traces.jsonl`。
 
 > 若 Langfuse 完全不可用（`found: false` 重试后仍无），fallback：在报告中标注"未能从 Langfuse 获取"。assistant_text 仍用页面提取，不受影响。
 
@@ -226,12 +226,12 @@ Mode B 完成后可选执行，详见 `modes/d-verify.md`。
 
 ---
 
-### 步骤 7a：写出 context.jsonl
+### 步骤 7a：写出 turns.jsonl
 
 将步骤 6c 累积的对话上下文列表写出为 JSONL 文件（**仅含对话内容，无 tool call 信息**）：
 
 ```
-Write: reports/{test_run_id}/context.jsonl
+Write: reports/{test_run_id}/turns.jsonl
 ```
 
 首行为 `_meta`，后续每行一条对话记录：

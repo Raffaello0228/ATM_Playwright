@@ -204,8 +204,8 @@ ATM-Playwright/
 │   ├── batches/                   # 批次汇总
 │   │   └── {batch_id}.json
 │   └── <test_run_id>/             # 每次测试的输出
-│       ├── context.json           # session 上下文（playwright_url、langfuse_session_id 等）
-│       ├── turns.jsonl            # 对话记录（JSONL）
+│       ├── context.json           # session 元信息（playwright_url、langfuse_session_id 等，Mode B 开始时写入）
+│       ├── turns.jsonl            # 对话记录（JSONL，Mode B 结束时写入）
 │       ├── result.json            # 评估结果
 │       └── report.md              # Markdown 报告
 ├── agent-test.yaml                # 本地配置（不提交 Git）
@@ -292,7 +292,7 @@ ATM-Playwright/
 
 ### turns.jsonl
 
-第一行为 `_meta`，后续每行一条对话记录：
+第一行为 `_meta`，后续每行一条对话记录（原名 `context.jsonl`，已重命名）：
 
 ```jsonl
 {"_meta": {"test_run_id": "...", "agent_name": "...", "turns_count": 2, ...}}
