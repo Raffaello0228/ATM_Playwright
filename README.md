@@ -47,9 +47,32 @@ langfuse:
 
 也可以用环境变量代替：`LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL`
 
-### 4. 加载 atm-playwright skill
+### 4. 配置 atm-playwright skill
 
-在 Claude Code 中加载 `atm-playwright` skill，启动对话后直接说"执行测试 Mode B"即可开始。
+将 repo 中的 `skills/` 目录复制到 Claude Code 的 skill 目录：
+
+macOS / Linux：
+```bash
+cp -r skills/ ~/.claude/skills/atm-playwright
+```
+
+Windows：
+```powershell
+Copy-Item -Recurse skills\ "$env:USERPROFILE\.claude\skills\atm-playwright"
+```
+
+复制后目录结构应为：
+```
+~/.claude/skills/atm-playwright/
+├── SKILL.md
+└── modes/
+    ├── a-design.md
+    ├── b-execute.md
+    ├── c-evaluate.md
+    └── d-verify.md
+```
+
+重启 Claude Code 后 skill 自动生效，在对话中说"执行测试 Mode B，用例 CASE_001"即可开始。
 
 ---
 
