@@ -1,0 +1,29 @@
+# 凭证和本地配置
+agent-test.yaml
+
+# Python 环境
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+
+# Claude Code 本地状态
+.claude/
+
+# 测试运行数据（可选：如需保留历史报告则注释掉）
+reports/*/
+
+# 保留批次汇总目录结构
+!reports/batches/
+!reports/.gitkeep
+
+# playwright-cli 临时快照和日志
+.playwright-cli/

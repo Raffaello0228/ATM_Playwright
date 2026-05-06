@@ -1,0 +1,13 @@
+# ATM-Playwright 配置模板
+# 复制为 agent-test.yaml 并填写真实值
+
+playwright:
+  # Agent Web UI 地址（browser_navigate 目标）
+  url: "https://your-agent-ui.example.com/chat"
+
+langfuse:
+  public_key: "pk-lf-..."
+  secret_key: "sk-lf-..."
+  base_url: "https://cloud.langfuse.com"
+  # 国内自托管示例：
+  # base_url: "http://langfuse.internal"

@@ -1,0 +1,64 @@
+{
+  "tools": {
+    "URL解析": {
+      "type": "mcp",
+      "source": "Firecrawl",
+      "description": "抓取商品页面内容，提取结构化商品信息；用户输入商品 URL 时触发，失败时跳过并进入确认页。",
+      "names": ["firecrawl_scrape", "firecrawl_crawl", "firecrawl_map"]
+    },
+    "行业分类": {
+      "type": "mcp",
+      "source": "ec_category",
+      "description": "将商品描述映射为电商行业类目（至少三级，最多四级）；Prompt 2 行业初始化前调用。",
+      "names": ["ec_category"]
+    },
+    "产品信息确认": {
+      "type": "mcp",
+      "source": "creative_hitl",
+      "description": "HITL 1：deferred MCP，展示四步表单（商品信息→卖点→受众→语言地区），等待用户确认后才继续推演；必填字段缺失时「开始推演」不可点击。",
+      "names": ["confirm_product_info"]
+    },
+    "路径选择": {
+      "type": "mcp",
+      "source": "creative_hitl",
+      "description": "HITL 2：展示 L1-L4 路径卡片列表，要求用户多选至少 1 条；空选提交被阻断；支持附加补充说明。",
+      "names": ["ask_user"]
+    },
+    "提交创意卡片": {
+      "type": "mcp",
+      "source": "creative_hitl",
+      "description": "HITL 3：deferred MCP，提交所有生成卡片至前端展示；触发自由画布/在线文档渲染。",
+      "names": ["submit_creative_cards"]
+    },
+    "抠图处理": {
+      "type": "mcp",
+      "source": "image_generate",
+      "description": "用户上传商品图后静默调用，移除背景输出透明底/白底 PNG；失败时使用原图继续，不中断流程。",
+      "names": ["remove_background", "matting"]
+    },
+    "参考图生成": {
+      "type": "mcp",
+      "source": "image_generate",
+      "description": "根据英文生图 Prompt 和抠图产品图，生成带广告版式的 mockup 参考图；失败时保留文字卡片并标注失败。",
+      "names": ["generate_image", "image_generate"]
+    },
+    "文件系统": {
+      "type": "mcp",
+      "source": "filesystem",
+      "description": "读写工作区内文件；用于读取用户上传文件或保存中间产物。",
+      "names": ["read_file", "write_file", "list_files"]
+    },
+    "数据图表渲染": {
+      "type": "skill",
+      "source": "data-chart-rendering",
+      "description": "将结构化数据渲染为图表；路径评分、策略对比可视化时使用。",
+      "names": ["skill:data-chart-rendering"]
+    },
+    "文档处理": {
+      "type": "skill",
+      "source": "pdf",
+      "description": "解析用户上传的 PDF 文件，提取商品信息或 Brief 内容。",
+      "names": ["skill:pdf"]
+    }
+  }
+}

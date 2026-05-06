@@ -1,0 +1,2 @@
+case_id,title,prioty,description,project,user_query,final_intent,max_turns,expected_tools,case_type,operation_guide
+CASE_EX001,完整端到端流程·小白用户（含竞品对比）,P0,用户首次使用、一次性提供三要素（品牌/产品/市场）并指定竞品 → Agent 完整走完确认竞品 + 确认数据源两个 HITL 检查点并输出竞品卖点分析报告,市场洞察,帮我分析一下 DJI Mini 4 Pro 无人机在北美市场的卖点，售价 $759，想跟 Autel EVO Nano+ 做个对比,"以小白用户身份按 Agent 引导完成全流程：确认竞品检查点出现时正常确认竞品名单（Autel EVO Nano+）；确认数据源检查点出现时正常确认数据源规划；等待 Agent 输出包含卖点矩阵、竞争力评分、FASV 受众价值卡片和灵感手册的完整竞品分析报告后结束",16,联网搜索 / 页面内容爬取 / 商品卖点分析 / 用户确认 / 报告生成,normal_flow,project/市场洞察/operation_guide.md
