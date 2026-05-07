@@ -24,6 +24,9 @@ class LangfuseTraceResult:
     latency_ms: float | None = None
     tool_latency_ms: float | None = None   # sum of TOOL observation latencies
     llm_latency_ms: float | None = None    # sum of GENERATION observation latencies
+    tool_latency_by_name: dict[str, float] = field(default_factory=dict)   # per-tool latency (ms), insertion=call order
+    llm_calls: list[dict[str, Any]] = field(default_factory=list)          # per-GENERATION {name, latency_ms, input_tokens, output_tokens}
+    timeline: list[dict[str, Any]] = field(default_factory=list)           # chronological mix of tool/llm events for report display
     observations: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -105,8 +108,10 @@ class LangfuseQueryClient:
     def build_trace_result(self, trace: dict[str, Any]) -> LangfuseTraceResult:
         """Convert a raw Langfuse trace dict into a LangfuseTraceResult."""
         observations: list[dict[str, Any]] = trace.get("observations") or []
+        # Sort by startTime so all downstream helpers see chronological order
+        observations = sorted(observations, key=lambda o: o.get("startTime") or "")
         names, counts, failures = _extract_tool_calls_full(observations)
-        tool_lat, llm_lat = _extract_latency_breakdown(observations)
+        tool_lat, llm_lat, tool_latency_by_name, llm_calls = _extract_latency_breakdown(observations)
         return LangfuseTraceResult(
             trace_id=trace.get("id", ""),
             session_id=trace.get("sessionId"),
@@ -119,6 +124,9 @@ class LangfuseQueryClient:
             latency_ms=_extract_latency(trace),
             tool_latency_ms=tool_lat or None,
             llm_latency_ms=llm_lat or None,
+            tool_latency_by_name=tool_latency_by_name,
+            llm_calls=llm_calls,
+            timeline=_extract_timeline(observations),
             observations=_extract_observation_timeline(observations),
         )
 
@@ -165,6 +173,9 @@ class LangfuseQueryClient:
                     "tool_calls": r.tool_calls,
                     "tool_call_counts": r.tool_call_counts,
                     "tool_call_failures": r.tool_call_failures,
+                    "tool_latency_by_name": r.tool_latency_by_name,
+                    "llm_calls": r.llm_calls,
+                    "timeline": r.timeline,
                     "latency_ms": r.latency_ms,
                     "tool_latency_ms": r.tool_latency_ms,
                     "llm_latency_ms": r.llm_latency_ms,
@@ -319,30 +330,110 @@ def _extract_latency(trace: dict[str, Any]) -> float | None:
 
 def _extract_latency_breakdown(
     observations: list[dict[str, Any]],
-) -> tuple[float, float]:
+) -> tuple[float, float, dict[str, float], list[dict[str, Any]]]:
     """Sum TOOL and GENERATION observation latencies separately.
 
     Langfuse observation `latency` field is in seconds; converted to ms here.
 
     Returns:
-        (tool_latency_ms, llm_latency_ms)
+        (tool_latency_ms, llm_latency_ms, tool_latency_by_name, llm_calls)
+        - tool_latency_by_name: {tool_name: total_ms}, insertion order = first call order
+        - llm_calls: list of {name, latency_ms, input_tokens, output_tokens} in call order
     """
     tool_ms = 0.0
     llm_ms = 0.0
+    tool_latency_by_name: dict[str, float] = {}
+    llm_calls: list[dict[str, Any]] = []
+
     for obs in observations:
         raw_lat = obs.get("latency")
-        if raw_lat is None:
-            continue
-        try:
-            ms = float(raw_lat) * 1000
-        except (TypeError, ValueError):
-            continue
+        ms: float | None = None
+        if raw_lat is not None:
+            try:
+                ms = float(raw_lat) * 1000
+            except (TypeError, ValueError):
+                pass
+
         obs_type = (obs.get("type") or "").upper()
         if obs_type == "TOOL":
-            tool_ms += ms
+            if ms is not None:
+                tool_ms += ms
+                name = obs.get("name") or "unknown"
+                tool_latency_by_name[name] = round(
+                    tool_latency_by_name.get(name, 0.0) + ms, 1
+                )
         elif obs_type == "GENERATION":
-            llm_ms += ms
-    return round(tool_ms, 1), round(llm_ms, 1)
+            if ms is not None:
+                llm_ms += ms
+            usage = obs.get("usage") or {}
+            inp = usage.get("input") or usage.get("promptTokens") or usage.get("input_tokens") or 0
+            out = usage.get("output") or usage.get("completionTokens") or usage.get("output_tokens") or 0
+            try:
+                inp = int(inp)
+            except (TypeError, ValueError):
+                inp = 0
+            try:
+                out = int(out)
+            except (TypeError, ValueError):
+                out = 0
+            llm_calls.append({
+                "name": obs.get("name") or "llm",
+                "latency_ms": round(ms, 1) if ms is not None else None,
+                "input_tokens": inp,
+                "output_tokens": out,
+            })
+
+    return round(tool_ms, 1), round(llm_ms, 1), tool_latency_by_name, llm_calls
+
+
+def _extract_timeline(
+    observations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Build a chronological timeline of TOOL and GENERATION events for report display.
+
+    Each entry is one observation:
+    - TOOL:       {type: "tool", name, failed, latency_ms}
+    - GENERATION: {type: "llm",  name, latency_ms, input_tokens, output_tokens}
+    SPAN and other types are skipped.
+    """
+    result = []
+    for obs in observations:
+        obs_type = (obs.get("type") or "").upper()
+        raw_lat = obs.get("latency")
+        ms: float | None = None
+        if raw_lat is not None:
+            try:
+                ms = round(float(raw_lat) * 1000, 1)
+            except (TypeError, ValueError):
+                pass
+
+        if obs_type == "TOOL":
+            result.append({
+                "type": "tool",
+                "name": obs.get("name") or "unknown",
+                "failed": _is_failed_obs(obs),
+                "latency_ms": ms,
+            })
+        elif obs_type == "GENERATION":
+            usage = obs.get("usage") or {}
+            inp = usage.get("input") or usage.get("promptTokens") or usage.get("input_tokens") or 0
+            out = usage.get("output") or usage.get("completionTokens") or usage.get("output_tokens") or 0
+            try:
+                inp = int(inp)
+            except (TypeError, ValueError):
+                inp = 0
+            try:
+                out = int(out)
+            except (TypeError, ValueError):
+                out = 0
+            result.append({
+                "type": "llm",
+                "name": obs.get("name") or "llm",
+                "latency_ms": ms,
+                "input_tokens": inp,
+                "output_tokens": out,
+            })
+    return result
 
 
 def _to_int(v: Any) -> int | None:

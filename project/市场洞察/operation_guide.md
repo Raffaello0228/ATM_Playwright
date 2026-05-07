@@ -67,21 +67,6 @@ Mode B 步骤 5 的代码模板中需要以下项目专属值：
 
 ## HITL（人机交互确认）
 
-### HITL 检测代码（步骤 5b 轮询中使用）
-
-```bash
-hitl_result=$(playwright-cli run-code "async page => {
-  const bubbles = await page.locator('.ant-bubble-body').all();
-  const last = bubbles[bubbles.length - 1];
-  const btns = await last.locator('button').all();
-  const texts = [];
-  for (const b of btns) texts.push(await b.innerText());
-  const meaningful = texts.filter(t => t.trim());
-  return meaningful.length > 0 ? 'HITL:' + meaningful.join('|') : 'NO_HITL';
-}" 2>/dev/null)
-if [[ "$hitl_result" == HITL:* ]]; then turn_status="HITL"; break; fi
-```
-
 已观察到的 HITL 按钮文本（供参考，不用作硬编码匹配）：`确认，开始分析` / `确认，开始抓取` / `确认，开始采集` / `调整竞品` / `确认竞品` / `需要调整链接`
 
 部分 Agent 在执行流程中会在关键节点暂停，等待用户通过界面按钮确认后才继续。

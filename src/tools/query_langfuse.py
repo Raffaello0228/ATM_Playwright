@@ -124,6 +124,9 @@ def main() -> None:
             except Exception:
                 pass  # 跳过获取失败的单条 trace
 
+    # 按 timestamp 升序排列，保持与 Langfuse 原始顺序一致
+    trace_results.sort(key=lambda r: r.timestamp)
+
     lf.close()
 
     if not trace_results:

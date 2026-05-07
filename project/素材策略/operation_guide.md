@@ -105,9 +105,7 @@ status_json=$(playwright-cli run-code "async page => {
   try {
     const handle = await page.waitForFunction(
       (bubbleSel) => {
-        const ta = document.querySelector('textarea[placeholder=\"发消息，输入文本或 / 选择文件\"]');
-        const stopBtn = document.querySelector('img[alt=\"停止会话\"]');
-        if (ta && !ta.disabled && !stopBtn) return JSON.stringify({ status: 'DONE' });
+        // 先判断 HITL：最后一条气泡内有可见非空按钮 → HITL 优先
         const bubbles = document.querySelectorAll(bubbleSel);
         if (bubbles.length > 0) {
           const last = bubbles[bubbles.length - 1];
@@ -116,6 +114,10 @@ status_json=$(playwright-cli run-code "async page => {
           if (meaningful.length > 0)
             return JSON.stringify({ status: 'HITL', hitlText: meaningful.map(b => b.textContent.trim()).join('|') });
         }
+        // 再判断 DONE：输入框 enabled 且停止按钮已消失
+        const ta = document.querySelector('textarea[placeholder=\"发消息，输入文本或 / 选择文件\"]');
+        const stopBtn = document.querySelector('img[alt=\"停止会话\"]');
+        if (ta && !ta.disabled && !stopBtn) return JSON.stringify({ status: 'DONE' });
         return null;
       },
       BUBBLE_SELECTOR,
@@ -128,20 +130,6 @@ status_json=$(playwright-cli run-code "async page => {
 }" 2>/dev/null)
 turn_status=$(echo "$status_json" | python3 -c "import sys,json; print(json.loads(sys.stdin.read() or '{}').get('status','TIMEOUT'))")
 echo "$turn_status"
-```
-
-### HITL 处理原则
-
-HITL 样式不固定，无需关注具体表单结构。**检测到 HITL 后**：
-
-1. `playwright-cli snapshot` — 查看当前界面呈现的内容和按钮
-2. 根据 snapshot 和 `final_intent` 判断如何操作（填写内容、勾选选项、点击确认等）
-3. 操作完成后返回 5b 继续轮询
-
-```bash
-playwright-cli snapshot
-# 按实际界面操作，最后点击确认按钮
-playwright-cli click <confirm_button_ref>
 ```
 
 ---
