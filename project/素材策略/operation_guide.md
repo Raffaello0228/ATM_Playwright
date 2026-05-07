@@ -91,46 +91,7 @@ Mode B 步骤 5 的代码模板中需要以下项目专属值：
 |------|-----------|------|
 | DONE 判断方式 | `textarea[placeholder="发消息，输入文本或 / 选择文件"].isDisabled() === false` | 步骤 5b 轮询退出条件：主聊天输入框 enabled = Agent 完成 |
 | 消息内容选择器 | `.ant-bubble-body` | 步骤 5c 提取 assistant_text |
-| HITL 检测方式 | 见下方 run-code 代码段 | 步骤 5b：最后一条 bubble 内出现非空按钮文本 = HITL |
-
----
-
-## HITL（人机交互确认）
-
-### HITL 检测代码（步骤 5b 轮询中使用）
-
-```bash
-status_json=$(playwright-cli run-code "async page => {
-  const BUBBLE_SELECTOR = '.ant-bubble-body';
-  try {
-    const handle = await page.waitForFunction(
-      (bubbleSel) => {
-        // 先判断 HITL：最后一条气泡内有可见非空按钮 → HITL 优先
-        const bubbles = document.querySelectorAll(bubbleSel);
-        if (bubbles.length > 0) {
-          const last = bubbles[bubbles.length - 1];
-          const btns = [...last.querySelectorAll('button')];
-          const meaningful = btns.filter(b => b.offsetParent !== null && b.textContent.trim());
-          if (meaningful.length > 0)
-            return JSON.stringify({ status: 'HITL', hitlText: meaningful.map(b => b.textContent.trim()).join('|') });
-        }
-        // 再判断 DONE：输入框 enabled 且停止按钮已消失
-        const ta = document.querySelector('textarea[placeholder=\"发消息，输入文本或 / 选择文件\"]');
-        const stopBtn = document.querySelector('img[alt=\"停止会话\"]');
-        if (ta && !ta.disabled && !stopBtn) return JSON.stringify({ status: 'DONE' });
-        return null;
-      },
-      BUBBLE_SELECTOR,
-      { timeout: 600000, polling: 2000 }
-    );
-    return await handle.jsonValue();
-  } catch (e) {
-    return JSON.stringify({ status: 'TIMEOUT' });
-  }
-}" 2>/dev/null)
-turn_status=$(echo "$status_json" | python3 -c "import sys,json; print(json.loads(sys.stdin.read() or '{}').get('status','TIMEOUT'))")
-echo "$turn_status"
-```
+| HITL 检测方式 | 同 Mode B 通用模板 | 步骤 5b：最后一条 bubble 内出现非空按钮文本 = HITL |
 
 ---
 
